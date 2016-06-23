@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <title>NodeJS Starter Application</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <link rel="stylesheet" href="stylesheets/style.css"> -->
+      <script src="http://mbostock.github.com/d3/d3.v2.js"></script>
+      <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.0/jquery.min.js"></script
+      <script src="../applocal.js"></script>
+		<style>
+			/* tell the SVG path to be a thin blue line without any area fill */
+			path {
+				stroke-width: 1;
+				fill: none;
+			}
+			
+			.data1 {
+				stroke: steelblue;
+			}
+			.data2 {
+				stroke: orange;
+			}
+			.axis {
+			  shape-rendering: crispEdges;
+			}
+			.x.axis line {
+			  stroke: lightgrey;
+			}
+			.x.axis .minor {
+			  stroke-opacity: .5;
+			}
+			.x.axis path {
+			  display: none;
+			}
+			
+			.x.axis text {
+				font-size: 14;
+			}
+			.y.axis line, .y.axis path {
+			  fill: none;
+			  stroke: #000;
+			}
+			.y.axis text {
+				font-size: 14;
+			}
+			.y.axisRight text {
+				fill: orange;
+			}
+			.y.axisLeft text {
+				fill: steelblue;
+			}
+            .fillOrange {
+                fill: orange;
+            }
+            .fillBlue {
+                fill: steelblue;
+            }
+		</style>
+      
+  </head>
+
+  <body>
+    <div id="graph" class="aGraph" style="position:absolute;top:0px;left:0; float:left;"></div>
+
+
+	<script>
+        var data1 = [];
+		var data2 = [];
+        
+   (function(){     
+
+	var username = '';
+    var password = '';
+$.ajax({
+	
+    type: "GET",
+    contentType: "application/json",
+    dataType: "jsonp",
+	 headers: {
+   'Access-Control-Allow-Origin' : '*',
+   },
+    url: 'https://6c52582-b743-4524-856f-bff6a179ae34-bluemix.cloudant.com/canadaweather/_all_docs?include_docs=true&conflicts=true&limit=1&descending=true',
+    beforeSend: function(xhr) {
+        var base64 =  btoa(username+":"+password);
+        xhr.setRequestHeader("Authorization", "Basic " + base64);
+        xhr.withCredentials = true;
+    },
+    error: function(data){
+		console.log(data);
+    },
+    success: function(data){
+		console.log(data.rows[0].doc.ctObj);
+		console.log(data.rows[0].doc.ltObj);
+        data1 = data.rows[0].doc.ctObj;
+		data2 = data.rows[0].doc.ltObj;
+        //doTheChart();
+    }
+
+	})
+	
+        
+})();
+         doTheChart();
+        function doTheChart(){
+		/* implementation heavily influenced by http://bl.ocks.org/1166403 */
+		/* some arguments AGAINST the use of dual-scaled axes line graphs can be found at http://www.perceptualedge.com/articles/visual_business_intelligence/dual-scaled_axes.pdf */
+		
+		// define dimensions of graph
+		var m = [80, 80, 80, 80]; // margins
+		var w = 900 - m[1] - m[3];	// width
+		var h = 400 - m[0] - m[2]; // height
+		
+		// create a simple data array that we'll plot with a line (this array represents only the Y values, X will just be the index location)
+		var data1 = [44,45,50,52,60,40,45,46,47,48,60,70,40,50];
+		var data2 = [71,72,60,67,60,50,77,89,90,77,78,89,75,79];
+		// X scale will fit all values from data[] within pixels 0-w
+		var x = d3.scale.linear().domain([0, data1.length]).range([0, w]);
+		// Y scale will fit values from 0-10 within pixels h-0 (Note the inverted domain for the y-scale: bigger is up!)
+		var y1 = d3.scale.linear().domain([0, 100]).range([h, 0]); // in real world the domain would be dynamically calculated from the data
+		var y2 = d3.scale.linear().domain([0, 100]).range([h, 0]);  // in real world the domain would be dynamically calculated from the data
+			// automatically determining max range can work something like this
+			// var y = d3.scale.linear().domain([0, d3.max(data)]).range([h, 0]);
+		// create a line function that can convert data[] into x and y points
+		var line1 = d3.svg.line()
+			// assign the X function to plot our line as we wish
+			.x(function(d,i) { 
+				// verbose logging to show what's actually being done
+				//console.log('Plotting X1 value for data point: ' + d + ' using index: ' + i + ' to be at: ' + x(i) + ' using our xScale.');
+				// return the X coordinate where we want to plot this datapoint
+				return x(i); 
+			})
+			.y(function(d) { 
+				// verbose logging to show what's actually being done
+				//console.log('Plotting Y1 value for data point: ' + d + ' to be at: ' + y1(d) + " using our y1Scale.");
+				// return the Y coordinate where we want to plot this datapoint
+				return y1(d); 
+			})
+			
+		// create a line function that can convert data[] into x and y points
+		var line2 = d3.svg.line()
+			// assign the X function to plot our line as we wish
+			.x(function(d,i) { 
+				// verbose logging to show what's actually being done
+				//console.log('Plotting X2 value for data point: ' + d + ' using index: ' + i + ' to be at: ' + x(i) + ' using our xScale.');
+				// return the X coordinate where we want to plot this datapoint
+				return x(i); 
+			})
+			.y(function(d) { 
+				// verbose logging to show what's actually being done
+				//console.log('Plotting Y2 value for data point: ' + d + ' to be at: ' + y2(d) + " using our y2Scale.");
+				// return the Y coordinate where we want to plot this datapoint
+				return y2(d);
+			})
+			// Add an SVG element with the desired dimensions and margin.
+			var graph = d3.select("#graph").append("svg:svg")
+			      .attr("width", w + m[1] + m[3])
+			      .attr("height", h + m[0] + m[2])
+			    .append("svg:g")
+			      .attr("transform", "translate(" + m[3] + "," + m[0] + ")");
+			// create yAxis
+		    var xAxis = d3.svg.axis().scale(x).tickSize(-h).tickSubdivide(true);
+			// Add the x-axis.
+			graph.append("svg:g")
+			      .attr("class", "x axis")
+			      .attr("transform", "translate(0," + h + ")")
+			      .call(xAxis);
+        graph.append("text")      // text label for the x axis
+        .attr("x", 200 )
+        .attr("y",  300 )
+        .attr("class", "fillBlue")
+        .style("text-anchor", "middle")
+        .text("Phone Temperature (°C)");
+
+        
+        graph.append("text")      // text label for the x axis
+        .attr("x", 400 )
+        .attr("y",  300 )
+        .attr("class", "fillOrange")
+        .style("text-anchor", "middle")
+        .text("Light (lx)");
+			// create left yAxis
+			var yAxisLeft = d3.svg.axis().scale(y1).ticks(4).orient("left");
+			// Add the y-axis to the left
+			graph.append("svg:g")
+			      .attr("class", "y axis axisLeft")
+			      .attr("transform", "translate(-15,0)")
+			      .call(yAxisLeft);
+	  		// create right yAxis
+	  		var yAxisRight = d3.svg.axis().scale(y2).ticks(6).orient("right");
+  			// Add the y-axis to the right
+  			graph.append("svg:g")
+  			      .attr("class", "y axis axisRight")
+  			      .attr("transform", "translate(" + (w+15) + ",0)")
+  			      .call(yAxisRight);
+			
+			// add lines
+			// do this AFTER the axes above so that the line is above the tick-lines
+  			graph.append("svg:path").attr("d", line1(data1)).attr("class", "data1");
+  			graph.append("svg:path").attr("d", line2(data2)).attr("class", "data2");
+        }
+			
+	</script>
+  </body>
+
+</html>
+
+    
